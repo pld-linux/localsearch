@@ -10,13 +10,13 @@
 Summary:	Tracker miners and metadata extractors
 Summary(pl.UTF-8):	Narzędzia wydobywania danych dla programu Tracker
 Name:		localsearch
-Version:	3.8.0
+Version:	3.8.1
 Release:	1
 # see COPYING for details
 License:	LGPL v2.1+ (libs), GPL v2+ (miners)
 Group:		Applications
 Source0:	https://download.gnome.org/sources/localsearch/3.8/%{name}-%{version}.tar.xz
-# Source0-md5:	b9aa37c729509b6abc94fc6dedc99058
+# Source0-md5:	fc642f7cc48a1ec13aed3093daf83cdd
 URL:		https://gnome.pages.gitlab.gnome.org/localsearch/
 BuildRequires:	NetworkManager-devel
 BuildRequires:	asciidoc
