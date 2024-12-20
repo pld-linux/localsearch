@@ -11,7 +11,7 @@ Summary:	Tracker miners and metadata extractors
 Summary(pl.UTF-8):	Narzędzia wydobywania danych dla programu Tracker
 Name:		localsearch
 Version:	3.8.2
-Release:	1
+Release:	2
 # see COPYING for details
 License:	LGPL v2.1+ (libs), GPL v2+ (miners)
 Group:		Applications
@@ -85,6 +85,7 @@ Requires:	libxml2 >= 1:2.6
 Requires:	systemd-units >= 1:250.1
 Requires:	tinysparql >= 3.8
 %{?with_landlock:Requires:	uname(release) >= 5.13}
+Obsoletes:	tracker3-miners < 3.8.0
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 
 %description
