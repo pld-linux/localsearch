@@ -1,22 +1,20 @@
 #
 # Conditional build:
 %bcond_with	ffmpeg		# FFmpeg instead of GStreamer as generic media extractor
-%bcond_with	gupnp		# GStreamer gupnp backend instead of discoverer
 %bcond_with	icu		# ICU instead of enca for MP3 encoding detection
 %bcond_with	landlock	# landlock sandboxing (requires kernel 5.13 and landlock enabled in LSM)
-%bcond_without	rss		# RSS miner
 
 %define		abiver	3.0
 Summary:	Tracker miners and metadata extractors
 Summary(pl.UTF-8):	Narzędzia wydobywania danych dla programu Tracker
 Name:		localsearch
-Version:	3.8.2
-Release:	2
+Version:	3.9.0
+Release:	1
 # see COPYING for details
 License:	LGPL v2.1+ (libs), GPL v2+ (miners)
 Group:		Applications
-Source0:	https://download.gnome.org/sources/localsearch/3.8/%{name}-%{version}.tar.xz
-# Source0-md5:	56dfb5a30b3ab5ba33939d9f6bc21016
+Source0:	https://download.gnome.org/sources/localsearch/3.9/%{name}-%{version}.tar.xz
+# Source0-md5:	6d29c941a4e10eb7fcc6e84d0d90053a
 URL:		https://gnome.pages.gitlab.gnome.org/localsearch/
 BuildRequires:	NetworkManager-devel
 BuildRequires:	asciidoc
@@ -32,14 +30,12 @@ BuildRequires:	giflib-devel
 BuildRequires:	glib2-devel >= 1:2.70.0
 BuildRequires:	gstreamer-devel >= 1.20
 BuildRequires:	gstreamer-plugins-base-devel >= 1.20
-%if %{with gupnp}
+%if %{with ffmpeg}
 BuildRequires:	gupnp-dlna-devel >= 0.9.4
-BuildRequires:	gupnp-dlna-gst-devel >= 0.9.4
 %endif
 BuildRequires:	libblkid-devel
 BuildRequires:	libcue-devel >= 2.0.0
 BuildRequires:	libexif-devel >= 0.6
-%{?with_rss:BuildRequires:	libgrss-devel >= 0.7}
 BuildRequires:	libgsf-devel >= 1.14.24
 BuildRequires:	libgxps-devel
 %{?with_icu:BuildRequires:	libicu-devel >= 4.8.1.1}
@@ -58,7 +54,7 @@ BuildRequires:	meson >= 0.51
 BuildRequires:	ninja >= 1.5
 BuildRequires:	pkgconfig
 BuildRequires:	poppler-glib-devel >= 0.16.0
-BuildRequires:	rpmbuild(macros) >= 2.011
+BuildRequires:	rpmbuild(macros) >= 2.042
 BuildRequires:	tar >= 1:1.22
 BuildRequires:	tinysparql-devel >= 3.8
 BuildRequires:	totem-pl-parser-devel
@@ -72,13 +68,11 @@ Requires:	exempi >= 2.1.0
 Requires:	glib2 >= 1:2.70.0
 Requires:	gstreamer >= 1.20
 Requires:	gstreamer-plugins-base >= 1.20
-%if %{with gupnp}
+%if %{with ffmpeg}
 Requires:	gupnp-dlna >= 0.9.4
-Requires:	gupnp-dlna-gst >= 0.9.4
 %endif
 Requires:	libcue >= 2.0.0
 Requires:	libexif >= 0.6
-%{?with_rss:Requires:	libgrss >= 0.7}
 Requires:	libgsf >= 1.14.24
 Requires:	libosinfo >= 0.2.9
 Requires:	libxml2 >= 1:2.6
@@ -115,23 +109,37 @@ Narzędzia testowe Trackera 3.
 %setup -q
 
 %build
-%meson build \
+%meson \
 	--default-library=shared \
 	-Dbattery_detection=upower \
 	-Dcharset_detection=%{?with_icu:icu}%{!?with_icu:enca} \
+	-Dcue=enabled \
+	-Dexif=enabled \
+	-Dfanotify=enabled \
 	-Dfunctional_tests=false \
-	-Dgeneric_media_extractor=%{?with_ffmpeg:libav}%{!?with_ffmpeg:gstreamer} \
-	-Dgstreamer_backend=%{?with_gupnp:gupnp}%{!?with_gupnp:discoverer} \
+	-Dgif=enabled \
+	-Dgsf=enabled \
+	-Diptc=enabled \
+	-Diso=enabled \
+	-Djpeg=enabled \
 	-Dlandlock=%{__enabled_disabled landlock} \
-	%{?with_rss:-Dminer_rss=true} \
-	-Dsystemd_user_services_dir=%{systemduserunitdir}
+	-Dlibav=%{__enabled_disabled ffmpeg} \
+	-Dpdf=enabled \
+	-Dplaylist=enabled \
+	-Dpng=enabled \
+	-Draw=enabled \
+	-Dsystemd_user_services_dir=%{systemduserunitdir} \
+	-Dtiff=enabled \
+	-Dxml=enabled \
+	-Dxmp=enabled \
+	-Dxps=enabled
 
-%ninja_build -C build
+%meson_build
 
 %install
 rm -rf $RPM_BUILD_ROOT
 
-%ninja_install -C build
+%meson_install
 
 %find_lang localsearch3
 
@@ -147,10 +155,10 @@ fi
 
 %post
 %glib_compile_schemas
-%systemd_user_post localsearch-3.service localsearch-control-3.service localsearch-writeback-3.service %{?with_rss:tracker-miner-rss-3.service}
+%systemd_user_post localsearch-3.service localsearch-control-3.service localsearch-writeback-3.service
 
 %preun
-%systemd_user_preun localsearch-3.service localsearch-control-3.service localsearch-writeback-3.service %{?with_rss:tracker-miner-rss-3.service}
+%systemd_user_preun localsearch-3.service localsearch-control-3.service localsearch-writeback-3.service
 
 %postun
 %glib_compile_schemas
@@ -178,8 +186,6 @@ fi
 %attr(755,root,root) %{_libdir}/localsearch-%{abiver}/extract-modules/libextract-epub.so
 # R: giflib
 %attr(755,root,root) %{_libdir}/localsearch-%{abiver}/extract-modules/libextract-gif.so
-# R: gstreamer gstreamer-plugins-base
-%attr(755,root,root) %{_libdir}/localsearch-%{abiver}/extract-modules/libextract-gstreamer.so
 # R: libxml2
 %attr(755,root,root) %{_libdir}/localsearch-%{abiver}/extract-modules/libextract-html.so
 %attr(755,root,root) %{_libdir}/localsearch-%{abiver}/extract-modules/libextract-icon.so
@@ -254,16 +260,10 @@ fi
 %{_datadir}/localsearch3/extract-rules/10-xps.rule
 %{_datadir}/localsearch3/extract-rules/11-iso.rule
 %{_datadir}/localsearch3/extract-rules/11-msoffice-xml.rule
-# libextract-gstreamer
-%{_datadir}/localsearch3/extract-rules/15-gstreamer-guess.rule
 %{_datadir}/localsearch3/extract-rules/15-playlist.rule
 # libextract-text
 %{_datadir}/localsearch3/extract-rules/15-text.rule
 %{_datadir}/localsearch3/extract-rules/90-disc-generic.rule
-# libextract-gstreamer
-%{_datadir}/localsearch3/extract-rules/90-gstreamer-audio-generic.rule
-# libextract-gstreamer
-%{_datadir}/localsearch3/extract-rules/90-gstreamer-video-generic.rule
 %dir %{_datadir}/localsearch3/miners
 %{_datadir}/localsearch3/miners/org.freedesktop.Tracker3.Miner.Files.service
 %{_mandir}/man1/localsearch-3.1*
@@ -276,14 +276,6 @@ fi
 %{_mandir}/man1/localsearch-status.1*
 %{_mandir}/man1/localsearch-tag.1*
 %{_mandir}/man1/localsearch-writeback-3.1*
-%if %{with rss}
-%attr(755,root,root) %{_libexecdir}/tracker-miner-rss-3
-%{systemduserunitdir}/tracker-miner-rss-3.service
-/etc/xdg/autostart/tracker-miner-rss-3.desktop
-%{_datadir}/dbus-1/services/org.freedesktop.Tracker3.Miner.RSS.service
-%{_datadir}/localsearch3/miners/org.freedesktop.Tracker3.Miner.RSS.service
-%{_mandir}/man1/tracker-miner-rss-3.1*
-%endif
 
 %files testutils
 %defattr(644,root,root,755)
