@@ -8,13 +8,13 @@
 Summary:	Tracker miners and metadata extractors
 Summary(pl.UTF-8):	Narzędzia wydobywania danych dla programu Tracker
 Name:		localsearch
-Version:	3.9.0
-Release:	4
+Version:	3.11.1
+Release:	1
 # see COPYING for details
 License:	LGPL v2.1+ (libs), GPL v2+ (miners)
 Group:		Applications
-Source0:	https://download.gnome.org/sources/localsearch/3.9/%{name}-%{version}.tar.xz
-# Source0-md5:	6d29c941a4e10eb7fcc6e84d0d90053a
+Source0:	https://download.gnome.org/sources/localsearch/3.11/%{name}-%{version}.tar.xz
+# Source0-md5:	1406955c072af72776fdcbb9b12dc103
 URL:		https://gnome.pages.gitlab.gnome.org/localsearch/
 BuildRequires:	NetworkManager-devel
 BuildRequires:	asciidoc
@@ -25,9 +25,11 @@ BuildRequires:	dbus-devel >= 1.3.1
 BuildRequires:	exempi-devel >= 2.1.0
 # libavcodec libavformat libavutil
 %{?with_ffmpeg:BuildRequires:	ffmpeg-devel >= 0.8.4}
-BuildRequires:	gexiv2-devel
+# with fallback to gexiv2-devel < 0.16
+BuildRequires:	gexiv2-0.16-devel >= 0.16
 BuildRequires:	giflib-devel
-BuildRequires:	glib2-devel >= 1:2.70.0
+BuildRequires:	glib2-devel >= 1:2.76.0
+BuildRequires:	gobject-introspection-devel
 BuildRequires:	gstreamer-devel >= 1.20
 BuildRequires:	gstreamer-plugins-base-devel >= 1.20
 %if %{with ffmpeg}
@@ -47,8 +49,10 @@ BuildRequires:	libpng-devel >= 0.89
 BuildRequires:	libseccomp-devel >= 2.0
 %endif
 BuildRequires:	libtiff-devel >= 4
+BuildRequires:	libwebp-devel
 BuildRequires:	libxml2-devel >= 1:2.6
 BuildRequires:	libxslt-progs
+BuildRequires:	libzip-devel
 %{?with_landlock:BuildRequires:	linux-libc-headers >= 7:5.13}
 BuildRequires:	meson >= 0.51
 BuildRequires:	ninja >= 1.5
@@ -56,7 +60,7 @@ BuildRequires:	pkgconfig
 BuildRequires:	poppler-glib-devel >= 0.16.0
 BuildRequires:	rpmbuild(macros) >= 2.042
 BuildRequires:	tar >= 1:1.22
-BuildRequires:	tinysparql-devel >= 3.8
+BuildRequires:	tinysparql-devel >= 3.11
 BuildRequires:	totem-pl-parser-devel
 BuildRequires:	upower-devel >= 0.9.0
 BuildRequires:	xz
@@ -65,7 +69,7 @@ Requires(post,preun):	systemd-units >= 1:250.1
 Requires:	dbus >= 1.3.1
 %{!?with_icu:Requires:	enca-libs >= 1.9}
 Requires:	exempi >= 2.1.0
-Requires:	glib2 >= 1:2.70.0
+Requires:	glib2 >= 1:2.76.0
 Requires:	gstreamer >= 1.20
 Requires:	gstreamer-plugins-base >= 1.20
 %if %{with ffmpeg}
@@ -77,7 +81,7 @@ Requires:	libgsf >= 1.14.24
 Requires:	libosinfo >= 0.2.9
 Requires:	libxml2 >= 1:2.6
 Requires:	systemd-units >= 1:250.1
-Requires:	tinysparql >= 3.8
+Requires:	tinysparql >= 3.11
 %{?with_landlock:Requires:	uname(release) >= 5.13}
 Obsoletes:	tracker3-miners < 3.8.0
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
@@ -111,6 +115,7 @@ Narzędzia testowe Trackera 3.
 %build
 %meson \
 	--default-library=shared \
+	-Dbash_completion_dir=%{bash_compdir} \
 	-Dbattery_detection=upower \
 	-Dcharset_detection=%{?with_icu:icu}%{!?with_icu:enca} \
 	-Dcue=enabled \
@@ -130,9 +135,11 @@ Narzędzia testowe Trackera 3.
 	-Draw=enabled \
 	-Dsystemd_user_services_dir=%{systemduserunitdir} \
 	-Dtiff=enabled \
+	-Dwebp=enabled \
 	-Dxml=enabled \
 	-Dxmp=enabled \
-	-Dxps=enabled
+	-Dxps=enabled \
+	-Dzip=enabled
 
 %meson_build
 
@@ -169,6 +176,7 @@ fi
 %attr(755,root,root) %{_bindir}/localsearch
 %attr(755,root,root) %{_libexecdir}/localsearch-3
 %attr(755,root,root) %{_libexecdir}/localsearch-control-3
+%attr(755,root,root) %{_libexecdir}/localsearch-endpoint-3
 %attr(755,root,root) %{_libexecdir}/localsearch-extractor-3
 %attr(755,root,root) %{_libexecdir}/localsearch-writeback-3
 %{systemduserunitdir}/localsearch-3.service
@@ -176,47 +184,52 @@ fi
 %{systemduserunitdir}/localsearch-writeback-3.service
 /etc/xdg/autostart/localsearch-3.desktop
 %dir %{_libdir}/localsearch-%{abiver}
-%attr(755,root,root) %{_libdir}/localsearch-%{abiver}/libtracker-extract.so
+%{_libdir}/localsearch-%{abiver}/libtracker-extract.so
+%{_libdir}/localsearch-%{abiver}/libtracker-extract-zip.so
 %dir %{_libdir}/localsearch-%{abiver}/extract-modules
-%attr(755,root,root) %{_libdir}/localsearch-%{abiver}/extract-modules/libextract-abw.so
-%attr(755,root,root) %{_libdir}/localsearch-%{abiver}/extract-modules/libextract-bmp.so
-%attr(755,root,root) %{_libdir}/localsearch-%{abiver}/extract-modules/libextract-desktop.so
-%attr(755,root,root) %{_libdir}/localsearch-%{abiver}/extract-modules/libextract-disc-generic.so
-%attr(755,root,root) %{_libdir}/localsearch-%{abiver}/extract-modules/libextract-dummy.so
-%attr(755,root,root) %{_libdir}/localsearch-%{abiver}/extract-modules/libextract-epub.so
+%{_libdir}/localsearch-%{abiver}/extract-modules/libextract-abw.so
+%{_libdir}/localsearch-%{abiver}/extract-modules/libextract-bmp.so
+%{_libdir}/localsearch-%{abiver}/extract-modules/libextract-desktop.so
+%{_libdir}/localsearch-%{abiver}/extract-modules/libextract-disc-generic.so
+%{_libdir}/localsearch-%{abiver}/extract-modules/libextract-dummy.so
+%{_libdir}/localsearch-%{abiver}/extract-modules/libextract-epub.so
 # R: giflib
-%attr(755,root,root) %{_libdir}/localsearch-%{abiver}/extract-modules/libextract-gif.so
+%{_libdir}/localsearch-%{abiver}/extract-modules/libextract-gif.so
 # R: libxml2
-%attr(755,root,root) %{_libdir}/localsearch-%{abiver}/extract-modules/libextract-html.so
-%attr(755,root,root) %{_libdir}/localsearch-%{abiver}/extract-modules/libextract-icon.so
+%{_libdir}/localsearch-%{abiver}/extract-modules/libextract-html.so
+%{_libdir}/localsearch-%{abiver}/extract-modules/libextract-icon.so
 # R: libosinfo
-%attr(755,root,root) %{_libdir}/localsearch-%{abiver}/extract-modules/libextract-iso.so
+%{_libdir}/localsearch-%{abiver}/extract-modules/libextract-iso.so
 # R: libiptcdata libjpeg
-%attr(755,root,root) %{_libdir}/localsearch-%{abiver}/extract-modules/libextract-jpeg.so
-%attr(755,root,root) %{_libdir}/localsearch-%{abiver}/extract-modules/libextract-mp3.so
+%{_libdir}/localsearch-%{abiver}/extract-modules/libextract-jpeg.so
+%{_libdir}/localsearch-%{abiver}/extract-modules/libextract-mp3.so
 # R: libgsf
-%attr(755,root,root) %{_libdir}/localsearch-%{abiver}/extract-modules/libextract-msoffice.so
-%attr(755,root,root) %{_libdir}/localsearch-%{abiver}/extract-modules/libextract-msoffice-xml.so
-%attr(755,root,root) %{_libdir}/localsearch-%{abiver}/extract-modules/libextract-oasis.so
+%{_libdir}/localsearch-%{abiver}/extract-modules/libextract-msoffice.so
+%{_libdir}/localsearch-%{abiver}/extract-modules/libextract-msoffice-xml.so
+%{_libdir}/localsearch-%{abiver}/extract-modules/libextract-oasis.so
 # R: poppler-glib
-%attr(755,root,root) %{_libdir}/localsearch-%{abiver}/extract-modules/libextract-pdf.so
+%{_libdir}/localsearch-%{abiver}/extract-modules/libextract-pdf.so
 # R: totem-plparser
-%attr(755,root,root) %{_libdir}/localsearch-%{abiver}/extract-modules/libextract-playlist.so
+%{_libdir}/localsearch-%{abiver}/extract-modules/libextract-playlist.so
 # R: libpng
-%attr(755,root,root) %{_libdir}/localsearch-%{abiver}/extract-modules/libextract-png.so
-%attr(755,root,root) %{_libdir}/localsearch-%{abiver}/extract-modules/libextract-ps.so
-# R: libgexiv2
-%attr(755,root,root) %{_libdir}/localsearch-%{abiver}/extract-modules/libextract-raw.so
-%attr(755,root,root) %{_libdir}/localsearch-%{abiver}/extract-modules/libextract-text.so
+%{_libdir}/localsearch-%{abiver}/extract-modules/libextract-png.so
+%{_libdir}/localsearch-%{abiver}/extract-modules/libextract-ps.so
+# R: gexiv2-0.16
+%{_libdir}/localsearch-%{abiver}/extract-modules/libextract-raw.so
+%{_libdir}/localsearch-%{abiver}/extract-modules/libextract-text.so
 # R: libtiff
-%attr(755,root,root) %{_libdir}/localsearch-%{abiver}/extract-modules/libextract-tiff.so
+%{_libdir}/localsearch-%{abiver}/extract-modules/libextract-tiff.so
+# R: libwebp
+%{_libdir}/localsearch-%{abiver}/extract-modules/libextract-webp.so
 # R: libgxps
-%attr(755,root,root) %{_libdir}/localsearch-%{abiver}/extract-modules/libextract-xps.so
+%{_libdir}/localsearch-%{abiver}/extract-modules/libextract-xps.so
 %dir %{_libdir}/localsearch-%{abiver}/writeback-modules
 # R: gstreamer gstreamer-plugins-base
-%attr(755,root,root) %{_libdir}/localsearch-%{abiver}/writeback-modules/libwriteback-gstreamer.so
+%{_libdir}/localsearch-%{abiver}/writeback-modules/libwriteback-gstreamer.so
+# R: totem-plparser
+%{_libdir}/localsearch-%{abiver}/writeback-modules/libwriteback-playlist.so
 # R: exempi
-%attr(755,root,root) %{_libdir}/localsearch-%{abiver}/writeback-modules/libwriteback-xmp.so
+%{_libdir}/localsearch-%{abiver}/writeback-modules/libwriteback-xmp.so
 %{_datadir}/dbus-1/interfaces/org.freedesktop.Tracker3.Miner.xml
 %{_datadir}/dbus-1/interfaces/org.freedesktop.Tracker3.Miner.Files.Index.xml
 %{_datadir}/dbus-1/services/org.freedesktop.LocalSearch3.service
@@ -230,8 +243,6 @@ fi
 %{_datadir}/glib-2.0/schemas/org.freedesktop.Tracker3.Miner.Files.gschema.xml
 %{_datadir}/glib-2.0/schemas/org.freedesktop.TrackerMiners3.enums.xml
 %dir %{_datadir}/localsearch3
-%dir %{_datadir}/localsearch3/domain-ontologies
-%{_datadir}/localsearch3/domain-ontologies/default.rule
 %dir %{_datadir}/localsearch3/extract-rules
 # standalone (builtin?) rules
 %{_datadir}/localsearch3/extract-rules/10-comics.rule
@@ -257,6 +268,7 @@ fi
 %{_datadir}/localsearch3/extract-rules/10-ps.rule
 %{_datadir}/localsearch3/extract-rules/10-raw.rule
 %{_datadir}/localsearch3/extract-rules/10-tiff.rule
+%{_datadir}/localsearch3/extract-rules/10-webp.rule
 %{_datadir}/localsearch3/extract-rules/10-xps.rule
 %{_datadir}/localsearch3/extract-rules/11-iso.rule
 %{_datadir}/localsearch3/extract-rules/11-msoffice-xml.rule
@@ -264,13 +276,13 @@ fi
 # libextract-text
 %{_datadir}/localsearch3/extract-rules/15-text.rule
 %{_datadir}/localsearch3/extract-rules/90-disc-generic.rule
-%dir %{_datadir}/localsearch3/miners
-%{_datadir}/localsearch3/miners/org.freedesktop.Tracker3.Miner.Files.service
+%{bash_compdir}/localsearch
+%{_mandir}/man1/localsearch.1*
 %{_mandir}/man1/localsearch-3.1*
-%{_mandir}/man1/localsearch-daemon.1*
 %{_mandir}/man1/localsearch-extract.1*
 %{_mandir}/man1/localsearch-index.1*
 %{_mandir}/man1/localsearch-info.1*
+%{_mandir}/man1/localsearch-inhibit.1*
 %{_mandir}/man1/localsearch-reset.1*
 %{_mandir}/man1/localsearch-search.1*
 %{_mandir}/man1/localsearch-status.1*
