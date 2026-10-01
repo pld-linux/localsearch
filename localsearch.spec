@@ -9,7 +9,7 @@ Summary:	Tracker miners and metadata extractors
 Summary(pl.UTF-8):	Narzędzia wydobywania danych dla programu Tracker
 Name:		localsearch
 Version:	3.11.2
-Release:	1
+Release:	2
 # see COPYING for details
 License:	LGPL v2.1+ (libs), GPL v2+ (miners)
 Group:		Applications
@@ -145,6 +145,7 @@ Narzędzia testowe Trackera 3.
 
 %install
 rm -rf $RPM_BUILD_ROOT
+install -d $RPM_BUILD_ROOT%{_datadir}/localsearch3/domain-ontologies
 
 %meson_install
 
@@ -243,6 +244,7 @@ fi
 %{_datadir}/glib-2.0/schemas/org.freedesktop.Tracker3.Miner.Files.gschema.xml
 %{_datadir}/glib-2.0/schemas/org.freedesktop.TrackerMiners3.enums.xml
 %dir %{_datadir}/localsearch3
+%dir %{_datadir}/localsearch3/domain-ontologies
 %dir %{_datadir}/localsearch3/extract-rules
 # standalone (builtin?) rules
 %{_datadir}/localsearch3/extract-rules/10-comics.rule
